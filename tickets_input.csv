@@ -1,0 +1,17 @@
+Name,Email,Issue Type,Priority,Description,Timestamp
+Alice Johnson,alice@university.edu,wifi,High,Cannot connect to campus WiFi in Block B,2025-03-13 08:00:00
+Bob Smith,bob@university.edu,login,Medium,Cannot log in to student portal since yesterday,2025-03-13 08:30:00
+Carol White,carol@university.edu,software,Low,Microsoft Office keeps crashing on my laptop,2025-03-13 09:00:00
+Dave Brown,dave@university.edu,hardware,High,Laptop screen is broken and won't display anything,2025-03-13 09:15:00
+Eve Davis,eve@university.edu,other,Low,Need help setting up email on my phone,2025-03-13 09:30:00
+Frank Miller,FRANK@university.edu,wifi,Medium,WiFi drops every 10 minutes in the library,2025-03-13 10:00:00
+Grace Lee,grace@university.edu,login,High,Admin account locked after too many password attempts,2025-03-13 10:15:00
+Henry Wilson,henry@university.edu,software,Medium,VPN software not working from home,2025-03-13 10:30:00
+invalid-email,notanemail,wifi,High,WiFi not working,2025-03-13 11:00:00
+Irene Clark,irene@university.edu,wifi,URGENT,Cannot connect to WiFi,2025-03-13 11:15:00
+Jack Turner,jack@university.edu,unknown,Low,Strange issue with my account,2025-03-13 11:30:00
+Karen Hall,karen@university.edu,hardware,Low,Printer in lab 3 is out of paper,2025-03-13 12:00:00
+Alice Johnson,alice@university.edu,wifi,High,Still cannot connect to WiFi in Block B,2025-03-13 12:30:00
+Liam Scott,liam@university.edu,login,Medium,Password reset email not arriving,2025-03-13 13:00:00
+Mia Adams,,software,Low,Excel crashes on startup,2025-03-13 13:15:00
+Noah Baker,noah@university.edu,hardware,High,Desktop PC won't turn on,2025-03-13 14:00:00

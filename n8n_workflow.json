@@ -1,0 +1,152 @@
+{
+  "name": "IT Support Ticket Automation - Assessment 1",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "n1",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "notes": "Trigger: Receives new support ticket via HTTP POST. Fields: name, email, issue_type, priority, description, timestamp"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Step 2: Validate & Transform ─────────────────────────────\nconst items = $input.all();\nconst processed = [];\nconst rejected = [];\n\nconst VALID_PRIORITIES = ['high', 'medium', 'low'];\nconst VALID_ISSUE_TYPES = ['wifi', 'login', 'software', 'hardware', 'other'];\n\nfunction validateEmail(email) {\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);\n}\n\nfunction generateID() {\n  return 'TKT-' + Math.random().toString(36).substr(2, 8).toUpperCase();\n}\n\nfunction normalizeName(name) {\n  return name.trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');\n}\n\n// Dedup store (in-memory for this execution)\nconst seen = {};\n\nfor (const item of items) {\n  const data = item.json;\n  const ticketId = generateID();\n  const timestamp = data.timestamp ? new Date(data.timestamp) : new Date();\n\n  const name = (data.name || '').trim();\n  const email = (data.email || '').trim().toLowerCase();\n  const issueType = (data.issue_type || '').trim().toLowerCase();\n  const priority = (data.priority || '').trim().toLowerCase();\n  const description = (data.description || '').trim();\n\n  // Validate email\n  if (!email || !validateEmail(email)) {\n    rejected.push({\n      ticket_id: ticketId,\n      name: normalizeName(name) || 'Unknown',\n      email: email || '(missing)',\n      reason: 'Invalid or missing email address',\n      timestamp: timestamp.toISOString(),\n    });\n    continue;\n  }\n\n  // Validate priority\n  if (!VALID_PRIORITIES.includes(priority)) {\n    rejected.push({\n      ticket_id: ticketId,\n      name: normalizeName(name),\n      email,\n      reason: `Invalid priority: '${data.priority}'. Must be High/Medium/Low`,\n      timestamp: timestamp.toISOString(),\n    });\n    continue;\n  }\n\n  // Validate issue type\n  if (!VALID_ISSUE_TYPES.includes(issueType)) {\n    rejected.push({\n      ticket_id: ticketId,\n      name: normalizeName(name),\n      email,\n      reason: `Unknown issue type: '${data.issue_type}'`,\n      timestamp: timestamp.toISOString(),\n    });\n    continue;\n  }\n\n  // Deduplicate (same email + issue_type within 24h)\n  const dedupKey = `${email}|${issueType}`;\n  if (seen[dedupKey]) {\n    const diffHours = (timestamp - seen[dedupKey]) / 3600000;\n    if (diffHours < 24) {\n      rejected.push({\n        ticket_id: ticketId,\n        name: normalizeName(name),\n        email,\n        reason: `Duplicate ticket: same email+issue submitted ${diffHours.toFixed(1)}h ago`,\n        timestamp: timestamp.toISOString(),\n      });\n      continue;\n    }\n  }\n  seen[dedupKey] = timestamp;\n\n  processed.push({\n    ticket_id: ticketId,\n    name: normalizeName(name),\n    email,\n    issue_type: issueType,\n    priority: priority.charAt(0).toUpperCase() + priority.slice(1),\n    description,\n    timestamp: timestamp.toISOString(),\n    _valid: true,\n  });\n}\n\n// Output both arrays for downstream routing\nreturn [{ json: { processed, rejected } }];"
+      },
+      "id": "n2",
+      "name": "Validate & Transform",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "notes": "Validates email, priority, issue type. Normalizes text. Deduplicates within 24h window. Generates unique ticket IDs."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Step 3: Route to Team + Step 4: Calculate SLA ────────────\nconst { processed, rejected } = $input.first().json;\n\nconst ROUTING = {\n  wifi:     'Network',\n  login:    'IT Support',\n  software: 'Applications',\n  hardware: 'Infrastructure',\n  other:    'General',\n};\n\nconst SLA_HOURS = {\n  High:   4,\n  Medium: 24,\n  Low:    72,\n};\n\nconst routed = processed.map(ticket => {\n  const team = ROUTING[ticket.issue_type] || 'General';\n  const slaHours = SLA_HOURS[ticket.priority] || 72;\n  const submittedAt = new Date(ticket.timestamp);\n  const slaDeadline = new Date(submittedAt.getTime() + slaHours * 3600 * 1000);\n\n  return {\n    ...ticket,\n    team,\n    sla_hours: slaHours,\n    sla_deadline: slaDeadline.toISOString().replace('T', ' ').substring(0, 19),\n  };\n});\n\nreturn [{ json: { routed, rejected } }];"
+      },
+      "id": "n3",
+      "name": "Route & Assign SLA",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "notes": "Routes tickets: wifi→Network, login→IT Support, software→Applications, hardware→Infrastructure, other→General. Calculates SLA deadline: High=4h, Medium=24h, Low=72h."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.routed.length }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "n4",
+      "name": "Has Processed Tickets?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [900, 200],
+      "notes": "Checks if there are valid processed tickets before storing"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Step 5a: Store Processed Tickets ─────────────────────────\n// In production: replace with Google Sheets / Database / Airtable node\n// Here we format the output and simulate storage\n\nconst { routed, rejected } = $input.first().json;\n\nconsole.log(`[STORAGE] Storing ${routed.length} processed ticket(s)...`);\nrouted.forEach(t => {\n  console.log(`  ✓ ${t.ticket_id} | ${t.name} | ${t.issue_type} → ${t.team} | SLA: ${t.sla_deadline}`);\n});\n\nreturn [{ json: { status: 'stored', count: routed.length, tickets: routed, rejected } }];"
+      },
+      "id": "n5",
+      "name": "Store Processed Tickets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 160],
+      "notes": "Stores valid/processed tickets. In production: connect to Google Sheets, PostgreSQL, Airtable, or any database node."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Step 5b: Store Rejected Tickets ──────────────────────────\nconst { rejected } = $input.first().json;\n\nconsole.log(`[REJECTED STORE] Storing ${rejected.length} rejected ticket(s)...`);\nrejected.forEach(t => {\n  console.log(`  ✗ ${t.ticket_id} | ${t.email} | Reason: ${t.reason}`);\n});\n\nreturn [{ json: { status: 'stored_rejected', count: rejected.length, tickets: rejected } }];"
+      },
+      "id": "n6",
+      "name": "Store Rejected Tickets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 380],
+      "notes": "Stores rejected/error tickets with reason. In production: connect to a separate sheet or error log database."
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Step 6: Generate Summary Report ──────────────────────────\nconst processed = $input.first().json.tickets || [];\nconst rejected = $node['Store Rejected Tickets'].json.tickets || [];\n\nconst total = processed.length + rejected.length;\n\n// Team breakdown\nconst byTeam = {};\nprocessed.forEach(t => { byTeam[t.team] = (byTeam[t.team] || 0) + 1; });\n\n// Priority breakdown\nconst byPriority = {};\nprocessed.forEach(t => { byPriority[t.priority] = (byPriority[t.priority] || 0) + 1; });\n\nconst report = {\n  generated_at: new Date().toISOString(),\n  total_received: total,\n  total_processed: processed.length,\n  total_rejected: rejected.length,\n  processing_rate: total > 0 ? ((processed.length / total) * 100).toFixed(1) + '%' : '0%',\n  tickets_per_team: byTeam,\n  tickets_per_priority: byPriority,\n  processed_tickets: processed,\n  rejected_tickets: rejected,\n};\n\nconsole.log('\\n═══════════════════════════════════════');\nconsole.log('  SUMMARY REPORT');\nconsole.log('═══════════════════════════════════════');\nconsole.log(`  Total Received  : ${report.total_received}`);\nconsole.log(`  Processed       : ${report.total_processed}`);\nconsole.log(`  Rejected        : ${report.total_rejected}`);\nconsole.log(`  Processing Rate : ${report.processing_rate}`);\nconsole.log('  By Team:', JSON.stringify(report.tickets_per_team));\nconsole.log('  By Priority:', JSON.stringify(report.tickets_per_priority));\nconsole.log('═══════════════════════════════════════');\n\nreturn [{ json: report }];"
+      },
+      "id": "n7",
+      "name": "Generate Summary Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 260],
+      "notes": "Generates summary report: total received, processed vs rejected, tickets per team and priority. Export to CSV/Excel in production."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "n8",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1540, 260],
+      "notes": "Returns final summary report as JSON response to the webhook caller"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Error Handler ─────────────────────────────────────────────\nconst error = $input.first();\nconsole.error('[ERROR HANDLER]', error.json);\n\nreturn [{\n  json: {\n    status: 'error',\n    message: 'Workflow encountered an error. Check logs.',\n    details: error.json,\n    timestamp: new Date().toISOString(),\n  }\n}];"
+      },
+      "id": "n9",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 500],
+      "notes": "Catches any workflow errors: invalid input, storage failure, unknown issue type. Logs and returns structured error response."
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [[{ "node": "Validate & Transform", "type": "main", "index": 0 }]]
+    },
+    "Validate & Transform": {
+      "main": [[{ "node": "Route & Assign SLA", "type": "main", "index": 0 }]]
+    },
+    "Route & Assign SLA": {
+      "main": [
+        [{ "node": "Has Processed Tickets?", "type": "main", "index": 0 }],
+        [{ "node": "Store Rejected Tickets", "type": "main", "index": 0 }]
+      ]
+    },
+    "Has Processed Tickets?": {
+      "main": [
+        [{ "node": "Store Processed Tickets", "type": "main", "index": 0 }],
+        [{ "node": "Error Handler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Store Processed Tickets": {
+      "main": [[{ "node": "Generate Summary Report", "type": "main", "index": 0 }]]
+    },
+    "Store Rejected Tickets": {
+      "main": [[{ "node": "Generate Summary Report", "type": "main", "index": 0 }]]
+    },
+    "Generate Summary Report": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "Error Handler"
+  },
+  "meta": {
+    "description": "Assessment 1 - IT Support Ticket Automation. Processes university IT support tickets end-to-end: validates email/priority/issue type, deduplicates within 24h, routes to teams, assigns SLA deadlines, stores processed/rejected tickets, generates summary report.",
+    "version": "1.0"
+  }
+}

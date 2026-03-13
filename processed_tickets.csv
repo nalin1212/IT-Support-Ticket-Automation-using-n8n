@@ -1,0 +1,12 @@
+Ticket ID,Name,Email,Issue Type,Priority,Description,Routed To,SLA Deadline,Submitted At,Status
+TKT-20260313-823BF735,Alice Johnson,alice@university.edu,wifi,High,Cannot connect to campus WiFi in Block B,Network,2025-03-13 12:00:00,2025-03-13 08:00:00,Processed
+TKT-20260313-97C7735D,Bob Smith,bob@university.edu,login,Medium,Cannot log in to student portal since yesterday,IT Support,2025-03-14 08:30:00,2025-03-13 08:30:00,Processed
+TKT-20260313-42A61208,Carol White,carol@university.edu,software,Low,Microsoft Office keeps crashing on my laptop,Applications,2025-03-16 09:00:00,2025-03-13 09:00:00,Processed
+TKT-20260313-62C18086,Dave Brown,dave@university.edu,hardware,High,Laptop screen is broken and won't display anything,Infrastructure,2025-03-13 13:15:00,2025-03-13 09:15:00,Processed
+TKT-20260313-40393A51,Eve Davis,eve@university.edu,other,Low,Need help setting up email on my phone,General,2025-03-16 09:30:00,2025-03-13 09:30:00,Processed
+TKT-20260313-F5FEB105,Frank Miller,frank@university.edu,wifi,Medium,WiFi drops every 10 minutes in the library,Network,2025-03-14 10:00:00,2025-03-13 10:00:00,Processed
+TKT-20260313-336F4C89,Grace Lee,grace@university.edu,login,High,Admin account locked after too many password attempts,IT Support,2025-03-13 14:15:00,2025-03-13 10:15:00,Processed
+TKT-20260313-AE1CA474,Henry Wilson,henry@university.edu,software,Medium,VPN software not working from home,Applications,2025-03-14 10:30:00,2025-03-13 10:30:00,Processed
+TKT-20260313-F6C88436,Karen Hall,karen@university.edu,hardware,Low,Printer in lab 3 is out of paper,Infrastructure,2025-03-16 12:00:00,2025-03-13 12:00:00,Processed
+TKT-20260313-D520E809,Liam Scott,liam@university.edu,login,Medium,Password reset email not arriving,IT Support,2025-03-14 13:00:00,2025-03-13 13:00:00,Processed
+TKT-20260313-273992B0,Noah Baker,noah@university.edu,hardware,High,Desktop PC won't turn on,Infrastructure,2025-03-13 18:00:00,2025-03-13 14:00:00,Processed

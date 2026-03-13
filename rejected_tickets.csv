@@ -1,0 +1,6 @@
+Ticket ID,Name,Email,Issue Type,Priority,Description,Reason,Submitted At,Status
+REJ-20260313-F7B9D386,invalid-email,notanemail,wifi,High,WiFi not working,Invalid email format: 'notanemail',2025-03-13 11:00:00,Rejected
+REJ-20260313-E05EECBD,Irene Clark,irene@university.edu,wifi,URGENT,Cannot connect to WiFi,"Invalid priority: 'URGENT' (allowed: High, Medium, Low)",2025-03-13 11:15:00,Rejected
+REJ-20260313-C994CE45,Jack Turner,jack@university.edu,unknown,Low,Strange issue with my account,"Unknown issue type: 'unknown' (allowed: hardware, software, login, other, wifi)",2025-03-13 11:30:00,Rejected
+REJ-20260313-7AB209E5,Alice Johnson,alice@university.edu,wifi,High,Still cannot connect to WiFi in Block B,Duplicate ticket — same email+issue 'wifi' already submitted within 24 hours,2025-03-13 12:30:00,Rejected
+REJ-20260313-65F58BE4,Mia Adams,—,software,Low,Excel crashes on startup,Email is missing,2025-03-13 13:15:00,Rejected

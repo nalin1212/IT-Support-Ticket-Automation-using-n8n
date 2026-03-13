@@ -1,0 +1,21 @@
+SUMMARY REPORT
+Generated,2026-03-13 15:18:33
+
+OVERVIEW
+Total Tickets Received,16
+Processed,11
+Rejected,5
+
+TICKETS PER TEAM
+Team,Count
+Network,2
+IT Support,3
+Applications,2
+Infrastructure,3
+General,1
+
+TICKETS BY PRIORITY
+Priority,Count
+High,4
+Medium,4
+Low,3
